@@ -66,8 +66,8 @@ class ObjectSearch(ElasticSearch):
         "hits": SearchResult,
     }
 
-    def _prep_response(self, response):
-        response = super(ObjectSearch, self)._prep_response(response)
+    def _decode_response(self, response):
+        response = super(ObjectSearch, self)._decode_response(response)
         for item, wrapper in self.__response_types.items():
             if item in response:
                 return wrapper(response)

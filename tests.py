@@ -24,7 +24,7 @@ class ObjectSearchTestCase(unittest.TestCase):
 
 class ResultTestCase(ObjectSearchTestCase):
     def testIndex(self):
-        result = self.conn.index({"user": "Joe Tester"}, "test-index", "user")
+        result = self.conn.index("test-index", "user", {"user": "Joe Tester"})
         self.assertTrue(isinstance(result, Result))
         self.assertTrue(result.ok)
         self.assertEqual(result.index, "test-index")
@@ -32,7 +32,7 @@ class ResultTestCase(ObjectSearchTestCase):
         self.assertTrue(result.id)
 
     def testCount(self):
-        self.conn.index({"user": "Joe Tester"}, "test-index", "user")
+        self.conn.index("test-index", "user", {"user": "Joe Tester"})
         self.conn.refresh(["test-index"])
         result = self.conn.count("Joe")
         self.assertEqual(result.count, 1)
@@ -46,7 +46,7 @@ class ResultTestCase(ObjectSearchTestCase):
 
 class DocumentTestCase(ObjectSearchTestCase):
     def testGet(self):
-        self.conn.index({"user": "Joe Tester"}, "test-index", "user", 1)
+        self.conn.index("test-index", "user", {"user": "Joe Tester"}, 1)
         doc = self.conn.get("test-index", "user", 1)
         self.assertTrue(isinstance(doc, Document))
         self.assertEqual(doc.index, "test-index")
@@ -77,9 +77,9 @@ class DocumentTestCase(ObjectSearchTestCase):
 
 class SearchResultTestCase(ObjectSearchTestCase):
     def indexSomeDocs(self):
-        self.conn.index({"user": "Joe Tester"}, "test-index", "user", 1)
-        self.conn.index({"user": "Jane Tester"}, "test-index", "user", 2)
-        self.conn.index({"user": "Doc Indexer"}, "test-index", "user", 3)
+        self.conn.index("test-index", "user", {"user": "Joe Tester"}, 1)
+        self.conn.index("test-index", "user", {"user": "Jane Tester"}, 2)
+        self.conn.index("test-index", "user", {"user": "Doc Indexer"}, 3)
         self.conn.refresh(["test-index"])
         
     def testSearch(self):
@@ -96,7 +96,7 @@ class SearchResultTestCase(ObjectSearchTestCase):
 
     def testMoreLikeThis(self):
         self.indexSomeDocs()
-        docs = self.conn.morelikethis("test-index", "user", 1, ['user'], min_term_freq=1, min_doc_freq=1)
+        docs = self.conn.more_like_this("test-index", "user", 1, ['user'], min_term_freq=1, min_doc_freq=1)
         self.assertTrue(isinstance(docs, SearchResult))
         self.assertTrue(isinstance(docs.hits, dict))
         self.assertEqual(docs.hits["total"], len(docs))
