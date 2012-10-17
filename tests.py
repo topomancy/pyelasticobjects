@@ -112,6 +112,68 @@ class SearchResultTestCase(ObjectSearchTestCase):
         self.assertTrue(isinstance(thawed, dict))
         self.assertEqual(thawed["user"], fixture["_source"]["user"])
 
+    def indexSomeGeoDocs(self):
+        self.conn.create_index('test-index')
+        self.conn.put_mapping('test-index', 'user', {'user': {'properties': {'name': {'type': 'string'},"location" : { "type" : "geo_point" }}}})
+        self.conn.index("test-index", "user", {"name": "Joe Tester", "age" : 25, "place":"leeds", "location":"53.8, -1.5"}, 1)
+        self.conn.index("test-index", "user", {"name": "Jane Tester",  "age" : 30, "place":"san francisco", "location":"37.7, -122.4"}, 2)
+        self.conn.index("test-index", "user", {"name": "Doc Testing",  "age" : 32, "place":"bombay", "location" : "19.0, 72.8"}, 3)
+        self.conn.refresh(["test-index"])
+
+
+    def testSearchFromDSL(self):
+        self.indexSomeGeoDocs()
+        query = {'query': {
+                            'filtered': {
+                                'query': {
+                                    'query_string': {'query': 'name:Test*'}
+                                },
+                                'filter': {
+                                    'range': {
+                                        'age': {
+                                            'from': 27,
+                                            'to': 37,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    }
+        results = self.conn.search(query, index='test-index', doc_type='user')
+        self.assertEqual(2, len(results.hits["hits"]))
+        self.assertTrue("name" in results[0])
+
+    def testBBOXSearchFromDSL(self):
+        self.indexSomeGeoDocs()
+        query = {
+            'query': {
+                "filtered": {
+                    "query" : {
+                        "match_all" : {}
+                    },
+                    "filter": {
+                        "geo_bounding_box": {
+                            "user.location": {
+                                "top_left": { 
+                                    "lat": 61.27,
+                                    "lon": -20.39
+                                },
+                                "bottom_right": {
+                                    "lat": 1.05,
+                                    "lon": 88.94
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        results = self.conn.search(query, index='test-index', doc_type='user')
+        self.assertEqual("leeds", results[0]["place"])
+        self.assertEqual("bombay", results[1]["place"])
+        self.assertEqual(2, len(results.hits["hits"]))
+
+
 
 if __name__ == "__main__":
     unittest.main()
